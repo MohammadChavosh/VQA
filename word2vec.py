@@ -1,3 +1,5 @@
+__author__ = 'Mohammad'
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import learn
