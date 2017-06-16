@@ -7,7 +7,7 @@ from data_loader import get_related_answers
 
 # Parameters
 embedding_dim = 300
-word2vec_file = 'GoogleNews-vectors-negative300.bin'
+word2vec_file = 'data/GoogleNews-vectors-negative300.bin'
 learning_rate = 0.001
 training_iters = 100000
 batch_size = 128
@@ -19,19 +19,39 @@ n_classes = 2
 related_answers = get_related_answers()
 question_texts = related_answers.keys()
 answers_vocab = list()
-for q in related_answers:
+ans_question_num = list()
+counter = 0
+for q in question_texts:
     for ans in related_answers[q]:
         answers_vocab.append(ans)
+        ans_question_num.append(counter)
+    counter += 1
+print 'loading is complete'
 
 # Build vocabulary
-max_question_length = max([len(questions.split(" ")) for questions in question_texts])
-vocab_processor = learn.preprocessing.VocabularyProcessor(max_question_length)
-vocab_processor.fit(question_texts + answers_vocab)
-questions = np.array(list(vocab_processor.transform(question_texts)))
+max_question_length = max([len(question.split(" ")) for question in question_texts])
+questions_vocab_processor = learn.preprocessing.VocabularyProcessor(max_question_length)
+questions = np.array(list(questions_vocab_processor.fit_transform(question_texts)))
+
+answers_vocab_processor = learn.preprocessing.VocabularyProcessor(1)
+answers_list = np.array(list(answers_vocab_processor.fit_transform(answers_vocab)))
+answers = dict()
+for i in range(len(ans_question_num)):
+    if ans_question_num[i] not in answers:
+        answers[ans_question_num[i]] = list()
+    answers[ans_question_num[i]].append(answers_list[i][0])
+
+# print len(answers_vocab_processor.vocabulary_)
+# print question_texts[0:4]
+# print questions[0:4]
+# for q in question_texts[0:4]:
+#     print related_answers[q]
+# for i in range(4):
+#     print answers[i]
 
 
 def load_word2vec():
-    initW = np.random.uniform(-0.25, 0.25, (len(vocab_processor.vocabulary_), embedding_dim))
+    init_embedding_w = np.random.uniform(-0.25, 0.25, (len(questions_vocab_processor.vocabulary_), embedding_dim))
     with open(word2vec_file, "rb") as f:
         header = f.readline()
         vocab_size, layer1_size = map(int, header.split())
@@ -46,31 +66,77 @@ def load_word2vec():
                     break
                 if ch != '\n':
                     word.append(ch)
-            idx = vocab_processor.vocabulary_.get(word)
+            idx = questions_vocab_processor.vocabulary_.get(word)
             if idx != 0:
-                initW[idx] = np.fromstring(f.read(binary_len), dtype='float32')
-                print(word)
+                init_embedding_w[idx] = np.fromstring(f.read(binary_len), dtype='float32')
             else:
                 f.read(binary_len)
             counter += 1
             if counter % 100000 == 0:
-                print(counter)
-    return initW
+                print counter
+    print 'loading word2vec file is complete'
+    return init_embedding_w
+
+
+def get_batch(step):
+    batch_start = (step * batch_size) % len(questions)
+    batch_in = questions[batch_start:batch_start + batch_size]
+    tmp = batch_size - len(batch_in)
+    if tmp > 0:
+        batch_in = batch_in + questions[0:tmp]
+    batch_out = np.zeros((batch_size, len(answers_vocab_processor.vocabulary_)))
+    for i in range(batch_start, batch_start + batch_size):
+        for ans in answers[i]:
+            batch_out[i - batch_start, ans - 1] = 1
+    if tmp > 0:
+        for i in range(0, tmp):
+            for ans in answers[i]:
+                batch_out[i + batch_size, ans - 1] = 1
+    return batch_in, batch_out
+
+
+def get_all():
+    all_in = questions
+    all_out = np.zeros((len(questions), len(answers_vocab_processor.vocabulary_)))
+    for i in range(0, len(questions)):
+        for ans in answers[i]:
+            all_out[i, ans - 1] = 1
+    return all_in, all_out
 
 
 def train():
     with tf.Graph().as_default():
-        embedding_W = tf.Variable(tf.random_uniform([len(vocab_processor.vocabulary_), embedding_dim], -1.0, 1.0), name="embedding_W")
+        embedding_w = tf.Variable(tf.random_uniform([len(questions_vocab_processor.vocabulary_), embedding_dim], -1.0, 1.0), name="embedding_w")
         input_questions = tf.placeholder(tf.int32, [None, questions.shape[1]], name="input_questions")
-        embedded_chars = tf.nn.embedding_lookup(embedding_W, input_questions)
+        output_answers = tf.placeholder(tf.float32, [None, len(answers_vocab_processor.vocabulary_)], name="output_answers")
+        embedded_chars = tf.nn.embedding_lookup(embedding_w, input_questions)
         unstacked_embedded_chars = tf.unstack(embedded_chars, max_question_length, 1)
 
         lstm_cell = rnn.BasicLSTMCell(n_hidden, forget_bias=1.0)
-        outputs, states = rnn.static_rnn(lstm_cell, unstacked_embedded_chars, dtype=tf.float32)
+        outputs, _ = rnn.static_rnn(lstm_cell, unstacked_embedded_chars, dtype=tf.float32)
+        out_w = tf.Variable(tf.random_normal([n_hidden, len(answers_vocab_processor.vocabulary_)]), name="out_w")
+        out_bias = tf.Variable(tf.random_normal([len(answers_vocab_processor.vocabulary_)]), name="out_bias")
+        pred = tf.matmul(outputs[-1], out_w) + out_bias
+        cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=pred, labels=output_answers))
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
         sess = tf.Session()
         with sess.as_default():
-            sess.run(tf.initialize_all_variables())
-            initW = load_word2vec()
-            sess.run(embedding_W.assign(initW))
+            sess.run(tf.global_variables_initializer())
+            init_embedding_w = load_word2vec()
+            sess.run(embedding_w.assign(init_embedding_w))
+            step = 0
+            while step * batch_size < training_iters:
+                batch_in, batch_out = get_batch(step)
+                sess.run(optimizer, feed_dict={input_questions: batch_in, output_answers: batch_out})
+                if step % display_step == 0:
+                    loss = sess.run(cost, feed_dict={input_questions: batch_in, output_answers: batch_out})
+                    print("Iter " + str(step*batch_size) + ", Minibatch Loss= " + "{:.6f}".format(loss))
+                step += 1
+            print("Optimization Finished!")
 
+            all_in, all_out = get_all()
+            loss = sess.run(cost, feed_dict={input_questions: all_in, output_answers: all_out})
+            print("Training Loss= " + "{:.6f}".format(loss))
+
+train()
