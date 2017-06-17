@@ -84,7 +84,7 @@ def get_batch(step):
     batch_in = questions[batch_start:batch_start + batch_size]
     tmp = batch_size - len(batch_in)
     if tmp > 0:
-        batch_in = batch_in + questions[0:tmp]
+        batch_in = np.concatenate((batch_in, questions[0:tmp]), axis=0)
     batch_out = np.zeros((batch_size, len(answers_vocab_processor.vocabulary_)))
     for i in range(batch_start, batch_start + batch_size):
         for ans in answers[i]:
