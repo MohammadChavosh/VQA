@@ -82,14 +82,14 @@ def load_word2vec():
 def get_batch(step):
     batch_start = (step * batch_size) % len(questions)
     batch_in = questions[batch_start:batch_start + batch_size]
-    tmp = batch_size - len(batch_in)
-    if tmp > 0:
-        batch_in = np.concatenate((batch_in, questions[0:tmp]), axis=0)
     batch_out = np.zeros((batch_size, len(answers_vocab_processor.vocabulary_)))
     for i in range(batch_start, batch_start + len(batch_in)):
         for ans in answers[i]:
             batch_out[i - batch_start, ans - 1] = 1
+
+    tmp = batch_size - len(batch_in)
     if tmp > 0:
+        batch_in = np.concatenate((batch_in, questions[0:tmp]), axis=0)
         for i in range(0, tmp):
             for ans in answers[i]:
                 batch_out[i + batch_size, ans - 1] = 1
