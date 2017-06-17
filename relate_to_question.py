@@ -139,7 +139,7 @@ def run():
         sess = tf.Session()
         with sess.as_default():
             sess.run(tf.global_variables_initializer())
-            init_embedding_w = load_word2vec()
+            init_embedding_w = load_word2vec(questions_vocab_processor)
             sess.run(embedding_w.assign(init_embedding_w))
             step = 0
             while step < training_iters:
