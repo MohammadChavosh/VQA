@@ -15,43 +15,56 @@ display_step = 100
 n_hidden = 512
 n_classes = 2
 
-# Load data
-related_answers = get_related_answers()
-question_texts = related_answers.keys()
-answers_vocab = list()
-ans_question_num = list()
-counter = 0
-for q in question_texts:
-    for ans in related_answers[q]:
-        answers_vocab.append(ans)
-        ans_question_num.append(counter)
-    counter += 1
-print 'loading is complete'
 
-# Build vocabulary
-max_question_length = max([len(question.split(" ")) for question in question_texts])
-questions_vocab_processor = learn.preprocessing.VocabularyProcessor(max_question_length)
-questions = np.array(list(questions_vocab_processor.fit_transform(question_texts)))
-print(len(questions))
+def load_train_data():
+    related_answers = get_related_answers(True)
+    question_texts = related_answers.keys()
+    answers_vocab = list()
+    ans_question_num = list()
+    counter = 0
+    for q in question_texts:
+        for ans in related_answers[q]:
+            answers_vocab.append(ans)
+            ans_question_num.append(counter)
+        counter += 1
 
-answers_vocab_processor = learn.preprocessing.VocabularyProcessor(1)
-answers_list = np.array(list(answers_vocab_processor.fit_transform(answers_vocab)))
-answers = dict()
-for i in range(len(ans_question_num)):
-    if ans_question_num[i] not in answers:
-        answers[ans_question_num[i]] = list()
-    answers[ans_question_num[i]].append(answers_list[i][0])
+    max_question_length = max([len(question.split(" ")) for question in question_texts])
+    questions_vocab_processor = learn.preprocessing.VocabularyProcessor(max_question_length)
+    questions = np.array(list(questions_vocab_processor.fit_transform(question_texts)))
 
-# print len(answers_vocab_processor.vocabulary_)
-# print question_texts[0:4]
-# print questions[0:4]
-# for q in question_texts[0:4]:
-#     print related_answers[q]
-# for i in range(4):
-#     print answers[i]
+    answers_vocab_processor = learn.preprocessing.VocabularyProcessor(1)
+    answers_list = np.array(list(answers_vocab_processor.fit_transform(answers_vocab)))
+    answers = dict()
+    for i in range(len(ans_question_num)):
+        if ans_question_num[i] not in answers:
+            answers[ans_question_num[i]] = list()
+        answers[ans_question_num[i]].append(answers_list[i][0])
+    return questions, answers, questions_vocab_processor, answers_vocab_processor, max_question_length
 
 
-def load_word2vec():
+def load_validation_data(questions_vocab_processor, answers_vocab_processor):
+    related_answers = get_related_answers(False)
+    question_texts = related_answers.keys()
+    questions = np.array(list(questions_vocab_processor.transform(question_texts)))
+
+    answers_vocab = list()
+    ans_question_num = list()
+    counter = 0
+    for q in question_texts:
+        for ans in related_answers[q]:
+            answers_vocab.append(ans)
+            ans_question_num.append(counter)
+        counter += 1
+    answers_list = np.array(list(answers_vocab_processor.transform(answers_vocab)))
+    answers = dict()
+    for i in range(len(ans_question_num)):
+        if ans_question_num[i] not in answers:
+            answers[ans_question_num[i]] = list()
+        answers[ans_question_num[i]].append(answers_list[i][0])
+    return questions, answers
+
+
+def load_word2vec(questions_vocab_processor):
     init_embedding_w = np.random.uniform(-0.25, 0.25, (len(questions_vocab_processor.vocabulary_), embedding_dim))
     with open(word2vec_file, "rb") as f:
         header = f.readline()
@@ -79,10 +92,10 @@ def load_word2vec():
     return init_embedding_w
 
 
-def get_batch(step):
+def get_batch(step, questions, answers, answers_vocab_len):
     batch_start = (step * batch_size) % len(questions)
     batch_in = questions[batch_start:batch_start + batch_size]
-    batch_out = np.zeros((batch_size, len(answers_vocab_processor.vocabulary_)))
+    batch_out = np.zeros((batch_size, answers_vocab_len))
     for i in range(batch_start, batch_start + len(batch_in)):
         for ans in answers[i]:
             batch_out[i - batch_start, ans - 1] = 1
@@ -96,17 +109,18 @@ def get_batch(step):
     return batch_in, batch_out
 
 
-def get_batch_for_test(step):
+def get_batch_for_test(step, questions, answers, answers_vocab_len):
     batch_start = (step * batch_size) % len(questions)
     batch_in = questions[batch_start:batch_start + batch_size]
-    batch_out = np.zeros((len(batch_in), len(answers_vocab_processor.vocabulary_)))
+    batch_out = np.zeros((len(batch_in), answers_vocab_len))
     for i in range(batch_start, batch_start + len(batch_in)):
         for ans in answers[i]:
             batch_out[i - batch_start, ans - 1] = 1
     return batch_in, batch_out, len(batch_in)
 
 
-def train():
+def run():
+    questions, answers, questions_vocab_processor, answers_vocab_processor, max_question_length = load_train_data()
     with tf.Graph().as_default():
         embedding_w = tf.Variable(tf.random_uniform([len(questions_vocab_processor.vocabulary_), embedding_dim], -1.0, 1.0), name="embedding_w")
         input_questions = tf.placeholder(tf.int32, [None, questions.shape[1]], name="input_questions")
@@ -129,7 +143,7 @@ def train():
             sess.run(embedding_w.assign(init_embedding_w))
             step = 0
             while step < training_iters:
-                batch_in, batch_out = get_batch(step)
+                batch_in, batch_out = get_batch(step, questions, answers, len(answers_vocab_processor.vocabulary_))
                 sess.run(optimizer, feed_dict={input_questions: batch_in, output_answers: batch_out})
                 if step % display_step == 0:
                     loss = sess.run(cost, feed_dict={input_questions: batch_in, output_answers: batch_out})
@@ -140,7 +154,7 @@ def train():
             step = 0
             losses = []
             while step * batch_size < len(questions):
-                batch_in, batch_out, size = get_batch_for_test(step)
+                batch_in, batch_out, size = get_batch_for_test(step, questions, answers, len(answers_vocab_processor.vocabulary_))
                 loss = sess.run(cost, feed_dict={input_questions: batch_in, output_answers: batch_out})
                 losses.append(loss * size)
                 if step % display_step == 0:
@@ -149,4 +163,18 @@ def train():
             total_train_loss = sum(losses) / len(questions)
             print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
 
-train()
+            questions, answers = load_validation_data(questions_vocab_processor, answers_vocab_processor)
+            step = 0
+            losses = []
+            while step * batch_size < len(questions):
+                batch_in, batch_out, size = get_batch_for_test(step, questions, answers, len(answers_vocab_processor.vocabulary_))
+                loss = sess.run(cost, feed_dict={input_questions: batch_in, output_answers: batch_out})
+                losses.append(loss * size)
+                if step % display_step == 0:
+                    print("Iter " + str(step))
+                step += 1
+            total_train_loss = sum(losses) / len(questions)
+            print("Total Validation Loss= " + "{:.6f}".format(total_train_loss))
+
+
+run()
