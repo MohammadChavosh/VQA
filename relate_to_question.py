@@ -89,10 +89,10 @@ def get_batch(step):
 
     tmp = batch_size - len(batch_in)
     if tmp > 0:
-        batch_in = np.concatenate((batch_in, questions[0:tmp]), axis=0)
         for i in range(0, tmp):
             for ans in answers[i]:
-                batch_out[i + batch_size, ans - 1] = 1
+                batch_out[i + len(batch_in), ans - 1] = 1
+        batch_in = np.concatenate((batch_in, questions[0:tmp]), axis=0)
     return batch_in, batch_out
 
 
