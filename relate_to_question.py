@@ -9,7 +9,7 @@ from data_loader import get_related_answers
 embedding_dim = 300
 word2vec_file = 'data/GoogleNews-vectors-negative300.bin'
 learning_rate = 0.001
-training_iters = 100000
+training_iters = 5000
 batch_size = 128
 display_step = 100
 n_hidden = 512
@@ -32,6 +32,7 @@ print 'loading is complete'
 max_question_length = max([len(question.split(" ")) for question in question_texts])
 questions_vocab_processor = learn.preprocessing.VocabularyProcessor(max_question_length)
 questions = np.array(list(questions_vocab_processor.fit_transform(question_texts)))
+print(len(questions))
 
 answers_vocab_processor = learn.preprocessing.VocabularyProcessor(1)
 answers_list = np.array(list(answers_vocab_processor.fit_transform(answers_vocab)))
@@ -95,13 +96,14 @@ def get_batch(step):
     return batch_in, batch_out
 
 
-def get_all():
-    all_in = questions
-    all_out = np.zeros((len(questions), len(answers_vocab_processor.vocabulary_)))
-    for i in range(0, len(questions)):
+def get_batch_for_test(step):
+    batch_start = (step * batch_size) % len(questions)
+    batch_in = questions[batch_start:batch_start + batch_size]
+    batch_out = np.zeros((len(batch_in), len(answers_vocab_processor.vocabulary_)))
+    for i in range(batch_start, batch_start + batch_size):
         for ans in answers[i]:
-            all_out[i, ans - 1] = 1
-    return all_in, all_out
+            batch_out[i - batch_start, ans - 1] = 1
+    return batch_in, batch_out, len(batch_in)
 
 
 def train():
@@ -126,17 +128,25 @@ def train():
             init_embedding_w = load_word2vec()
             sess.run(embedding_w.assign(init_embedding_w))
             step = 0
-            while step * batch_size < training_iters:
+            while step < training_iters:
                 batch_in, batch_out = get_batch(step)
                 sess.run(optimizer, feed_dict={input_questions: batch_in, output_answers: batch_out})
                 if step % display_step == 0:
                     loss = sess.run(cost, feed_dict={input_questions: batch_in, output_answers: batch_out})
-                    print("Iter " + str(step*batch_size) + ", Minibatch Loss= " + "{:.6f}".format(loss))
+                    print("Iter " + str(step) + ", Minibatch Loss= " + "{:.6f}".format(loss))
                 step += 1
             print("Optimization Finished!")
 
-            all_in, all_out = get_all()
-            loss = sess.run(cost, feed_dict={input_questions: all_in, output_answers: all_out})
-            print("Training Loss= " + "{:.6f}".format(loss))
+            step = 0
+            losses = []
+            while step * batch_size < len(questions):
+                batch_in, batch_out, size = get_batch_for_test(step)
+                loss = sess.run(cost, feed_dict={input_questions: batch_in, output_answers: batch_out})
+                losses.append(loss * size)
+                if step % display_step == 0:
+                    print("Iter " + str(step))
+                step += 1
+            total_train_loss = sum(losses) / len(questions)
+            print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
 
 train()
