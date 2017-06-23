@@ -7,7 +7,7 @@ sess = tf.Session()
 saver = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L152.meta')
 saver.restore(sess, 'data/tensorflow-resnet-pretrained-20160509/ResNet-L152.ckpt')
 
-for i in tf.get_collection(tf.GraphKeys.VARIABLES, scope='scale6'):
+for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='scale5'):
     print i.name   # i.name if you want just a name
 
 # Access saved Variables directly
