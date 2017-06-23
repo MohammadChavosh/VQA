@@ -5,7 +5,7 @@ import tensorflow as tf
 sess = tf.Session()
 #First let's load meta graph and restore weights
 saver = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L152.meta')
-saver.restore(sess, tf.train.latest_checkpoint('data/tensorflow-resnet-pretrained-20160509/.'))
+saver.restore(sess, 'data/tensorflow-resnet-pretrained-20160509/ResNet-L152.ckpt')
 
 for i in tf.get_collection(tf.GraphKeys.VARIABLES, scope='scale6'):
     print i.name   # i.name if you want just a name
