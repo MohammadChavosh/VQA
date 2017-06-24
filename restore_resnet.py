@@ -2,6 +2,7 @@ __author__ = 'Mohammad'
 
 import tensorflow as tf
 import skimage.io
+import skimage.transform
 import numpy as np
 
 
@@ -35,4 +36,4 @@ i = [
 	# graph.get_tensor_by_name("prob:0"),
 ]
 o = sess.run(i, {images: img[np.newaxis, :]})
-print o
+print o[0], o[0].shape
