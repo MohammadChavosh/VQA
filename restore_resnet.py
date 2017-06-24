@@ -18,7 +18,7 @@ for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='scale5'):
 # # create feed-dict to feed new data
 #
 graph = tf.get_default_graph()
-w1 = graph.get_tensor_by_name("scale5/x")
+w1 = graph.get_tensor_by_name("avg_pool")
 # w2 = graph.get_tensor_by_name("w2:0")
 # feed_dict ={w1:13.0,w2:17.0}
 #
