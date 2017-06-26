@@ -12,9 +12,9 @@ learning_rate = 0.001
 training_iters = 5000
 batch_size = 128
 display_step = 100
-n_hidden = 512
+n_hidden = 256
 n_classes = 2
-pre_output_len = 2048
+pre_output_len = 512
 
 
 def load_related_train_data():
