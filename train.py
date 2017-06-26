@@ -121,7 +121,7 @@ def get_batch(step, questions, answers, images_paths, answers_vocab_len):
             batch_out[i + len(batch_in_questions), answers[i] - 1] = 1
             batch_in_images.append(load_image(images_paths[i]))
         batch_in_questions = np.concatenate((batch_in_questions, questions[0:tmp]), axis=0)
-    return batch_in_questions, batch_in_images, batch_out
+    return batch_in_questions, np.asarray(batch_in_images), batch_out
 
 
 def get_batch_for_test(step, questions, answers, answers_vocab_len):
