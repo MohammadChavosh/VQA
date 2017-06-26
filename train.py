@@ -222,5 +222,5 @@ def run():
         # total_train_loss = sum(losses) / len(questions)
         # print("Total Validation Loss= " + "{:.6f}".format(total_train_loss))
 
-
-run()
+if __name__ == "__main__":
+    run()
