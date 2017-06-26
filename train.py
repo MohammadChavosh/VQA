@@ -157,13 +157,13 @@ def run():
     output_len = len(answers_vocab_processor.vocabulary_)
     output_answers = tf.placeholder(tf.float32, [None, output_len], name="output_answers")
 
-    tmp_len = img_features.shape[1] * output_len
+    tmp_len = img_features.shape.as_list()[1] * output_len
     print tmp_len
     q_to_img_w = tf.Variable(tf.random_normal([n_hidden, tmp_len]), name="q_to_img_w")
     print tmp_len
     q_to_img_bias = tf.Variable(tf.random_normal([tmp_len]), name="q_to_img_bias")
     img_out_w = tf.matmul(questions_features, q_to_img_w) + q_to_img_bias
-    img_out_w = tf.reshape(img_out_w, (img_features.shape[1], output_len))
+    img_out_w = tf.reshape(img_out_w, (img_features.shape.as_list()[1], output_len))
     q_out_w = tf.Variable(tf.random_normal([n_hidden, output_len]), name="q_out_w")
     out_bias = tf.Variable(tf.random_normal([output_len]), name="out_bias")
 
