@@ -14,7 +14,8 @@ batch_size = 128
 display_step = 100
 n_hidden = 256
 n_classes = 2
-pre_output_len = 512
+pre_output_len = 256
+img_features_len = 512
 
 
 def load_related_train_data():
@@ -143,7 +144,11 @@ def run():
 
     graph = tf.get_default_graph()
     images = graph.get_tensor_by_name("images:0")
-    img_features = graph.get_tensor_by_name("avg_pool:0")
+    raw_img_features = graph.get_tensor_by_name("avg_pool:0")
+    raw_to_img_features_w = tf.Variable(tf.random_normal([raw_img_features.shape.as_list()[1], img_features_len]),
+                                        name="raw_to_img_w")
+    raw_to_img_features_bias = tf.Variable(tf.random_normal([img_features_len]), name="raw_to_img_bias")
+    img_features = tf.matmul(raw_img_features, raw_to_img_features_w) + raw_to_img_features_bias
 
     embedding_w = tf.Variable(tf.random_uniform([len(questions_vocab_processor.vocabulary_), embedding_dim], -1.0, 1.0), name="embedding_w")
     input_questions = tf.placeholder(tf.int32, [None, questions.shape[1]], name="input_questions")
