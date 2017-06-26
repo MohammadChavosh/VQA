@@ -44,7 +44,7 @@ def get_vqa_data(is_train):
 		annotations = json.load(open('data/mscoco_val2014_annotations.json'))['annotations']
 		questions = json.load(open('data/OpenEnded_mscoco_val2014_questions.json'))['questions']
 		images_path = 'data/val2014/COCO_val2014_'
-	vqa_triplets = dict()
+	vqa_triplets = list()
 	for question, annotation in zip(questions, annotations):
 		if question['question_id'] != annotation['question_id']:
 			raise AssertionError("question id's are not equal")
@@ -54,5 +54,5 @@ def get_vqa_data(is_train):
 		for i in range(12 - len(img_num)):
 			img_path += '0'
 		img_path += img_num + '.jpg'
-		vqa_triplets[q] = (annotation['multiple_choice_answer'], img_path)
+		vqa_triplets.append(q, annotation['multiple_choice_answer'], img_path)
 	return vqa_triplets

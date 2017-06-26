@@ -40,12 +40,13 @@ def load_related_train_data():
 
 def load_train_data(questions_vocab_processor, answers_vocab_processor):
     vqa_triplets = get_vqa_data(True)
-    question_texts = vqa_triplets.keys()
+    question_texts = list()
     answers_vocab = list()
     images = list()
-    for q in question_texts:
-        answers_vocab.append(vqa_triplets[q][0])
-        images.append(vqa_triplets[q][1])
+    for (q, a, v) in vqa_triplets:
+        question_texts.append(q)
+        answers_vocab.append(a)
+        images.append(v)
 
     questions = np.array(list(questions_vocab_processor.fit_transform(question_texts)))
     answers = np.array(list(answers_vocab_processor.fit_transform(answers_vocab)))
