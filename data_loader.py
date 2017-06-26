@@ -3,10 +3,13 @@ __author__ = 'Mohammad'
 import json
 import skimage.io
 import skimage.transform
+import skimage.color
 
 
 def load_image(path, size=224):
 	img = skimage.io.imread(path)
+	if len(img.shape) == 2:
+		img = skimage.color.gray2rgb(img)
 	short_edge = min(img.shape[:2])
 	yy = int((img.shape[0] - short_edge) / 2)
 	xx = int((img.shape[1] - short_edge) / 2)
