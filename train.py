@@ -13,7 +13,6 @@ training_iters = 5000
 batch_size = 4
 display_step = 10
 n_hidden = 256
-n_classes = 2
 pre_output_len = 256
 img_features_len = 512
 
@@ -112,14 +111,18 @@ def get_batch(step, questions, answers, images_paths, answers_vocab_len):
     batch_in_images = list()
     batch_out = np.zeros((batch_size, answers_vocab_len))
     for i in range(batch_start, batch_start + len(batch_in_questions)):
-        batch_in_images.append(load_image(images_paths[i]))
+        img = load_image(images_paths[i])
+        print img.shape
+        batch_in_images.append(img)
         batch_out[i - batch_start, answers[i] - 1] = 1
 
     tmp = batch_size - len(batch_in_questions)
     if tmp > 0:
         for i in range(0, tmp):
             batch_out[i + len(batch_in_questions), answers[i] - 1] = 1
-            batch_in_images.append(load_image(images_paths[i]))
+            img = load_image(images_paths[i])
+            print img.shape
+            batch_in_images.append(img)
         batch_in_questions = np.concatenate((batch_in_questions, questions[0:tmp]), axis=0)
     return batch_in_questions, np.asarray(batch_in_images), batch_out
 
