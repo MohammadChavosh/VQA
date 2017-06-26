@@ -54,9 +54,5 @@ def get_vqa_data(is_train):
 		for i in range(12 - len(img_num)):
 			img_path += '0'
 		img_path += img_num + '.jpg'
-		# if q not in vqa_triplets:
-		# 	vqa_triplets[q] = list()
-		# for ans in annotation['answers']:
-		# 	vqa_triplets[q].add((ans['answer'], load_image(img_path)))
-		vqa_triplets[q].add((annotation['multiple_choice_answer'], img_path))
+		vqa_triplets[q] = (annotation['multiple_choice_answer'], img_path)
 	return vqa_triplets
