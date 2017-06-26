@@ -39,8 +39,8 @@ def load_related_train_data():
     return questions_vocab_processor, answers_vocab_processor, max_question_length
 
 
-def load_train_data(questions_vocab_processor, answers_vocab_processor):
-    vqa_triplets = get_vqa_data(True)
+def load_data(questions_vocab_processor, answers_vocab_processor, is_train):
+    vqa_triplets = get_vqa_data(is_train)
     question_texts = list()
     answers_vocab = list()
     images = list()
@@ -49,32 +49,10 @@ def load_train_data(questions_vocab_processor, answers_vocab_processor):
         answers_vocab.append(a)
         images.append(v)
 
-    questions = np.array(list(questions_vocab_processor.fit_transform(question_texts)))
-    answers = np.array(list(answers_vocab_processor.fit_transform(answers_vocab)))
+    questions = np.array(list(questions_vocab_processor.transform(question_texts)))
+    answers = np.array(list(answers_vocab_processor.transform(answers_vocab)))
 
     return questions, answers, images
-
-
-def load_validation_data(questions_vocab_processor, answers_vocab_processor):
-    related_answers = get_related_answers(False)
-    question_texts = related_answers.keys()
-    questions = np.array(list(questions_vocab_processor.transform(question_texts)))
-
-    answers_vocab = list()
-    ans_question_num = list()
-    counter = 0
-    for q in question_texts:
-        for ans in related_answers[q]:
-            answers_vocab.append(ans)
-            ans_question_num.append(counter)
-        counter += 1
-    answers_list = np.array(list(answers_vocab_processor.transform(answers_vocab)))
-    answers = dict()
-    for i in range(len(ans_question_num)):
-        if ans_question_num[i] not in answers:
-            answers[ans_question_num[i]] = list()
-        answers[ans_question_num[i]].append(answers_list[i][0])
-    return questions, answers
 
 
 def load_word2vec(questions_vocab_processor):
@@ -137,7 +115,7 @@ def get_batch_for_test(step, questions, answers, images_paths, answers_vocab_len
 
 def run():
     questions_vocab_processor, answers_vocab_processor, max_question_length = load_related_train_data()
-    questions, answers, images_paths = load_train_data(questions_vocab_processor, answers_vocab_processor)
+    questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, True)
 
     sess = tf.Session()
     saver = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L152.meta')
@@ -200,7 +178,7 @@ def run():
         step = 0
         losses = []
         while step * batch_size < len(questions):
-            batch_in_questions, batch_in_images, batch_out, size = get_batch(step, questions, answers, images_paths, len(answers_vocab_processor.vocabulary_))
+            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, len(answers_vocab_processor.vocabulary_))
             loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             losses.append(loss * size)
             if step % display_step == 0:
@@ -209,18 +187,18 @@ def run():
         total_train_loss = sum(losses) / len(questions)
         print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
 
-        # questions, answers = load_validation_data(questions_vocab_processor, answers_vocab_processor)
-        # step = 0
-        # losses = []
-        # while step * batch_size < len(questions):
-        #     batch_in_questions, batch_out, size = get_batch_for_test(step, questions, answers, len(answers_vocab_processor.vocabulary_))
-        #     loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, output_answers: batch_out})
-        #     losses.append(loss * size)
-        #     if step % display_step == 0:
-        #         print("Iter " + str(step))
-        #     step += 1
-        # total_train_loss = sum(losses) / len(questions)
-        # print("Total Validation Loss= " + "{:.6f}".format(total_train_loss))
+        questions, answers = load_data(questions_vocab_processor, answers_vocab_processor, False)
+        step = 0
+        losses = []
+        while step * batch_size < len(questions):
+            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, len(answers_vocab_processor.vocabulary_))
+            loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
+            losses.append(loss * size)
+            if step % display_step == 0:
+                print("Iter " + str(step))
+            step += 1
+        total_train_loss = sum(losses) / len(questions)
+        print("Total Validation Loss= " + "{:.6f}".format(total_train_loss))
 
 if __name__ == "__main__":
     run()
