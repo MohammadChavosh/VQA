@@ -167,7 +167,7 @@ def run():
     q_to_img_w = tf.Variable(tf.random_normal([n_hidden, tmp_len]), name="q_to_img_w")
     q_to_img_bias = tf.Variable(tf.random_normal([tmp_len]), name="q_to_img_bias")
     img_out_w = tf.matmul(questions_features, q_to_img_w) + q_to_img_bias
-    img_out_w = tf.reshape(img_out_w, (img_features_len, pre_output_len))
+    img_out_w = tf.reshape(img_out_w, (None, img_features_len, pre_output_len))
     q_out_w = tf.Variable(tf.random_normal([n_hidden, pre_output_len]), name="q_out_w")
     out_bias = tf.Variable(tf.random_normal([pre_output_len]), name="out_bias")
 
