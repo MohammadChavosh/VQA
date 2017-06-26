@@ -148,7 +148,7 @@ def run():
     raw_to_img_features_w = tf.Variable(tf.random_normal([raw_img_features.shape.as_list()[1], img_features_len]),
                                         name="raw_to_img_w")
     raw_to_img_features_bias = tf.Variable(tf.random_normal([img_features_len]), name="raw_to_img_bias")
-    img_features = tf.matmul(raw_img_features, raw_to_img_features_w) + raw_to_img_features_bias
+    img_features = tf.nn.relu(tf.matmul(raw_img_features, raw_to_img_features_w) + raw_to_img_features_bias)
 
     embedding_w = tf.Variable(tf.random_uniform([len(questions_vocab_processor.vocabulary_), embedding_dim], -1.0, 1.0), name="embedding_w")
     input_questions = tf.placeholder(tf.int32, [None, questions.shape[1]], name="input_questions")
@@ -158,7 +158,7 @@ def run():
     encoded_questions, _ = rnn.static_rnn(lstm_cell, unstacked_embedded_chars, dtype=tf.float32)
     q_w = tf.Variable(tf.random_normal([n_hidden, n_hidden]), name="q_w")
     q_bias = tf.Variable(tf.random_normal([n_hidden]), name="q_bias")
-    questions_features = tf.matmul(encoded_questions[-1], q_w) + q_bias
+    questions_features = tf.nn.relu(tf.matmul(encoded_questions[-1], q_w) + q_bias)
 
     output_len = len(answers_vocab_processor.vocabulary_)
     output_answers = tf.placeholder(tf.float32, [None, output_len], name="output_answers")
@@ -171,7 +171,7 @@ def run():
     q_out_w = tf.Variable(tf.random_normal([n_hidden, pre_output_len]), name="q_out_w")
     out_bias = tf.Variable(tf.random_normal([pre_output_len]), name="out_bias")
 
-    pre_output = tf.matmul(img_features, img_out_w) + tf.matmul(questions_features, q_out_w) + out_bias
+    pre_output = tf.nn.relu(tf.matmul(img_features, img_out_w) + tf.matmul(questions_features, q_out_w) + out_bias)
     pre_output_w = tf.Variable(tf.random_normal([pre_output_len, output_len]), name="pre_out_w")
     pre_output_bias = tf.Variable(tf.random_normal([output_len]), name="pre_out_bias")
 
