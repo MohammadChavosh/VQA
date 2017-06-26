@@ -111,30 +111,28 @@ def get_batch(step, questions, answers, images_paths, answers_vocab_len):
     batch_in_images = list()
     batch_out = np.zeros((batch_size, answers_vocab_len))
     for i in range(batch_start, batch_start + len(batch_in_questions)):
-        img = load_image(images_paths[i])
-        print img.shape
-        batch_in_images.append(img)
+        batch_in_images.append(load_image(images_paths[i]))
         batch_out[i - batch_start, answers[i] - 1] = 1
 
     tmp = batch_size - len(batch_in_questions)
     if tmp > 0:
         for i in range(0, tmp):
             batch_out[i + len(batch_in_questions), answers[i] - 1] = 1
-            img = load_image(images_paths[i])
-            print img.shape
-            batch_in_images.append(img)
+            batch_in_images.append(load_image(images_paths[i]))
         batch_in_questions = np.concatenate((batch_in_questions, questions[0:tmp]), axis=0)
     return batch_in_questions, np.asarray(batch_in_images), batch_out
 
 
-def get_batch_for_test(step, questions, answers, answers_vocab_len):
+def get_batch_for_test(step, questions, answers, images_paths, answers_vocab_len):
     batch_start = (step * batch_size) % len(questions)
-    batch_in = questions[batch_start:batch_start + batch_size]
-    batch_out = np.zeros((len(batch_in), answers_vocab_len))
-    for i in range(batch_start, batch_start + len(batch_in)):
-        for ans in answers[i]:
-            batch_out[i - batch_start, ans - 1] = 1
-    return batch_in, batch_out, len(batch_in)
+    batch_in_questions = questions[batch_start:batch_start + batch_size]
+    batch_in_images = list()
+    batch_out = np.zeros((len(batch_in_questions), answers_vocab_len))
+    for i in range(batch_start, batch_start + len(batch_in_questions)):
+        batch_in_images.append(load_image(images_paths[i]))
+        batch_out[i - batch_start, answers[i] - 1] = 1
+
+    return batch_in_questions, np.asarray(batch_in_images), batch_out, len(batch_in_questions)
 
 
 def run():
@@ -180,7 +178,8 @@ def run():
     pre_output_bias = tf.Variable(tf.random_normal([output_len]), name="pre_out_bias")
 
     prediction = tf.matmul(pre_output, pre_output_w) + pre_output_bias
-    cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=prediction, labels=output_answers))
+    prediction = tf.identity(prediction, name="prediction")
+    cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=prediction, labels=output_answers), name='cost')
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
     with sess.as_default():
@@ -196,19 +195,20 @@ def run():
                 print("Iter " + str(step) + ", Minibatch Loss= " + "{:.6f}".format(loss))
             step += 1
         print("Optimization Finished!")
+        saver.save(sess, 'vqa_model',global_step=step)
 
-        # step = 0
-        # losses = []
-        # while step * batch_size < len(questions):
-        #     batch_in_questions, batch_out, size = get_batch_for_test(step, questions, answers, len(answers_vocab_processor.vocabulary_))
-        #     loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, output_answers: batch_out})
-        #     losses.append(loss * size)
-        #     if step % display_step == 0:
-        #         print("Iter " + str(step))
-        #     step += 1
-        # total_train_loss = sum(losses) / len(questions)
-        # print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
-        #
+        step = 0
+        losses = []
+        while step * batch_size < len(questions):
+            batch_in_questions, batch_in_images, batch_out, size = get_batch(step, questions, answers, images_paths, len(answers_vocab_processor.vocabulary_))
+            loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
+            losses.append(loss * size)
+            if step % display_step == 0:
+                print("Iter " + str(step))
+            step += 1
+        total_train_loss = sum(losses) / len(questions)
+        print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
+
         # questions, answers = load_validation_data(questions_vocab_processor, answers_vocab_processor)
         # step = 0
         # losses = []
