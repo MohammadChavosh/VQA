@@ -36,7 +36,7 @@ def load_related_train_data():
 
     answers_vocab_processor = learn.preprocessing.VocabularyProcessor(1, min_frequency=20)
     answers_vocab_processor.fit(answers_vocab)
-    print "answers size={}".format(len(answers_vocab_processor.vocabulary_))
+    print "answers size={}".format(len(answers_vocab_processor.vocabulary_) - 1)
     return questions_vocab_processor, answers_vocab_processor, max_question_length
 
 
@@ -141,7 +141,7 @@ def run():
     q_bias = tf.Variable(tf.random_normal([n_hidden]), name="q_bias")
     questions_features = tf.nn.relu(tf.matmul(encoded_questions[-1], q_w) + q_bias)
 
-    output_len = len(answers_vocab_processor.vocabulary_)
+    output_len = len(answers_vocab_processor.vocabulary_) - 1
     output_answers = tf.placeholder(tf.float32, [None, output_len], name="output_answers")
 
     # tmp_len = img_features_len * pre_output_len
@@ -168,7 +168,7 @@ def run():
         sess.run(embedding_w.assign(init_embedding_w))
         step = 0
         while step < training_iters:
-            batch_in_questions, batch_in_images, batch_out = get_batch(step, questions, answers, images_paths, len(answers_vocab_processor.vocabulary_))
+            batch_in_questions, batch_in_images, batch_out = get_batch(step, questions, answers, images_paths, output_len)
             sess.run(optimizer, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             if step % display_step == 0:
                 loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
@@ -181,7 +181,7 @@ def run():
         total_size = 0
         losses = []
         while step * batch_size < len(questions):
-            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, len(answers_vocab_processor.vocabulary_))
+            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, output_len)
             loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             losses.append(loss * size)
             total_size += size
@@ -203,7 +203,7 @@ def run():
         total_size = 0
         losses = []
         while step * batch_size < len(questions):
-            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, len(answers_vocab_processor.vocabulary_))
+            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, output_len)
             loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             losses.append(loss * size)
             total_size += size
