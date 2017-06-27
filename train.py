@@ -34,8 +34,9 @@ def load_related_train_data():
     questions_vocab_processor.fit(question_texts)
     # questions = np.array(list(questions_vocab_processor.fit_transform(question_texts)))
 
-    answers_vocab_processor = learn.preprocessing.VocabularyProcessor(1)
+    answers_vocab_processor = learn.preprocessing.VocabularyProcessor(1, min_frequency=20)
     answers_vocab_processor.fit(answers_vocab)
+    print "answers size={}".format(len(answers_vocab_processor.vocabulary_))
     return questions_vocab_processor, answers_vocab_processor, max_question_length
 
 
@@ -45,9 +46,10 @@ def load_data(questions_vocab_processor, answers_vocab_processor, is_train):
     answers_vocab = list()
     images = list()
     for (q, a, v) in vqa_triplets:
-        question_texts.append(q)
-        answers_vocab.append(a)
-        images.append(v)
+        if a in answers_vocab_processor.vocabulary_._mapping:
+            question_texts.append(q)
+            answers_vocab.append(a)
+            images.append(v)
 
     questions = np.array(list(questions_vocab_processor.transform(question_texts)))
     answers = np.array(list(answers_vocab_processor.transform(answers_vocab)))
@@ -118,8 +120,8 @@ def run():
     questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, True)
 
     sess = tf.Session()
-    saver = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L101.meta')
-    saver.restore(sess, 'data/tensorflow-resnet-pretrained-20160509/ResNet-L101.ckpt')
+    saver = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L152.meta')
+    saver.restore(sess, 'data/tensorflow-resnet-pretrained-20160509/ResNet-L152.ckpt')
 
     graph = tf.get_default_graph()
     images = graph.get_tensor_by_name("images:0")
