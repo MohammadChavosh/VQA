@@ -118,8 +118,8 @@ def run():
     questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, True)
 
     sess = tf.Session()
-    saver = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L152.meta')
-    saver.restore(sess, 'data/tensorflow-resnet-pretrained-20160509/ResNet-L152.ckpt')
+    saver = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L101.meta')
+    saver.restore(sess, 'data/tensorflow-resnet-pretrained-20160509/ResNet-L101.ckpt')
 
     graph = tf.get_default_graph()
     images = graph.get_tensor_by_name("images:0")
@@ -173,7 +173,7 @@ def run():
                 print("Iter " + str(step) + ", Minibatch Loss= " + "{:.6f}".format(loss))
             step += 1
         print("Optimization Finished!")
-        saver.save(sess, 'vqa_model',global_step=step)
+        # saver.save(sess, 'vqa_model', global_step=step)
 
         step = 0
         total_size = 0
