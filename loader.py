@@ -11,7 +11,6 @@ def run():
     sess = tf.Session()
     saver = tf.train.import_meta_graph('vqa_model-5000.meta')
     saver.restore(sess, tf.train.latest_checkpoint('./'))
-
     graph = tf.get_default_graph()
     input_questions = graph.get_tensor_by_name('input_questions:0')
     images = graph.get_tensor_by_name("images:0")
@@ -19,7 +18,7 @@ def run():
     cost = graph.get_tensor_by_name('cost:0')
 
     with sess.as_default():
-
+        sess.run(tf.global_variables_initializer())
         step = 0
         losses = []
         while step * batch_size < len(questions):
