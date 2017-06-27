@@ -9,7 +9,7 @@ def run():
     questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, True)
 
     sess = tf.Session()
-    saver = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/vqa_model-5000.meta')
+    saver = tf.train.import_meta_graph('vqa_model-5000.meta')
     saver.restore(sess, tf.train.latest_checkpoint('./'))
 
     graph = tf.get_default_graph()
