@@ -175,7 +175,7 @@ def run():
                 print("Iter " + str(step) + ", Minibatch Loss= " + "{:.6f}".format(loss))
             step += 1
         print("Optimization Finished!")
-        # saver.save(sess, 'vqa_model', global_step=step)
+        saver.save(sess, 'data/trained_models/vqa_model', global_step=step)
 
         step = 0
         total_size = 0
