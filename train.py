@@ -9,7 +9,6 @@ from data_loader import get_related_answers, get_vqa_data, load_image
 embedding_dim = 300
 word2vec_file = 'data/GoogleNews-vectors-negative300.bin'
 learning_rate = 0.001
-training_iters = 60000
 batch_size = 8
 display_step = 10
 n_hidden = 256
@@ -167,8 +166,8 @@ def run():
         init_embedding_w = load_word2vec(questions_vocab_processor)
         sess.run(embedding_w.assign(init_embedding_w))
         step = 0
-        while step < training_iters:
-            batch_in_questions, batch_in_images, batch_out = get_batch(step, questions, answers, images_paths, output_len)
+        while step * batch_size < len(questions):
+            batch_in_questions, batch_in_images, batch_out = get_batch_for_test(step, questions, answers, images_paths, output_len)
             sess.run(optimizer, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             if step % display_step == 0:
                 loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
