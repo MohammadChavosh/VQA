@@ -9,8 +9,8 @@ from data_loader import get_related_answers, get_vqa_data, load_image
 embedding_dim = 300
 word2vec_file = 'data/GoogleNews-vectors-negative300.bin'
 learning_rate = 0.001
-training_iters = 5000
-batch_size = 4
+training_iters = 60000
+batch_size = 8
 display_step = 10
 n_hidden = 256
 pre_output_len = 256

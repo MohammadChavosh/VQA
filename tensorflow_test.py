@@ -1,11 +1,7 @@
-from tensorflow.contrib import learn
+from train import get_batch_for_test, load_data, load_related_train_data
 
-question_texts = ['salam azizam', 'salam salam azizam khobi', 'salam golabi azizam pesaram havij bastani boz khar']
-max_question_length = max([len(question.split(" ")) for question in question_texts])
-questions_vocab_processor = learn.preprocessing.VocabularyProcessor(max_question_length, min_frequency=1)
-questions_vocab_processor.fit(question_texts)
-print questions_vocab_processor.vocabulary_, len(questions_vocab_processor.vocabulary_)
-print 'salam' in questions_vocab_processor.vocabulary_._mapping
-print(list(questions_vocab_processor.transform(question_texts)))
-print(list(questions_vocab_processor.transform(['salam baghali', 'khodafez aziz'])))
-# questions = np.array(list(questions_vocab_proc
+questions_vocab_processor, answers_vocab_processor, max_question_length = load_related_train_data()
+questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, True)
+output_len = len(answers_vocab_processor.vocabulary_) - 1
+for step in range(10665, 10680):
+	batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, output_len)
