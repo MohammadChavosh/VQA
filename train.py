@@ -171,8 +171,9 @@ def run():
         sess.run(embedding_w.assign(init_embedding_w))
 
         saver = tf.train.Saver()
-        if os.path.isfile('data/trained_models/vqa_model.ckpt'):
-            saver.restore(sess, 'data/trained_models/vqa_model.ckpt')
+        if os.path.isfile('data/trained_models/vqa_model.meta'):
+            saver = tf.train.import_meta_graph('data/trained_models/vqa_model.meta')
+            saver.restore(sess, tf.train.latest_checkpoint('data/trained_models/'))
             print "Restored step={}".format(sess.run(step))
 
         while sess.run(step) * batch_size < len(questions):
