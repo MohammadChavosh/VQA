@@ -192,13 +192,14 @@ def run():
         step = 0
         total_size = 0
         losses = []
-        while step * batch_size < len(questions):
-            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, output_len)
+        while sess.run(step) * batch_size < len(questions):
+            pythonic_step = sess.run(step)
+            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(pythonic_step, questions, answers, images_paths, output_len)
             loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             losses.append(loss * size)
             total_size += size
-            if step % display_step == 0:
-                print("Training samples {} out of {}".format(step * batch_size, len(questions)))
+            if pythonic_step % display_step == 0:
+                print("Training samples {} out of {}".format(pythonic_step * batch_size, len(questions)))
                 print("Till now training loss= " + "{:.6f}".format(sum(losses) / total_size))
             step += 1
         total_train_loss = sum(losses) / total_size
@@ -214,13 +215,14 @@ def run():
         step = 0
         total_size = 0
         losses = []
-        while step * batch_size < len(questions):
-            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, output_len)
+        while sess.run(step) * batch_size < len(questions):
+            pythonic_step = sess.run(step)
+            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(pythonic_step, questions, answers, images_paths, output_len)
             loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             losses.append(loss * size)
             total_size += size
-            if step % display_step == 0:
-                print("Validation samples {} out of {}".format(step * batch_size, len(questions)))
+            if pythonic_step % display_step == 0:
+                print("Validation samples {} out of {}".format(pythonic_step * batch_size, len(questions)))
                 print("Till now validation loss= " + "{:.6f}".format(sum(losses) / total_size))
                 print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
             step += 1
