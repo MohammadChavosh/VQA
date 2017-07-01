@@ -186,11 +186,11 @@ def run():
             if pythonic_step % save_step == 0:
                 saver.save(sess, 'data/trained_models/vqa_model')
                 print("Saving...")
-            step += 1
+            sess.run(tf.assign_add(step, 1))
         print("Optimization Finished!")
         saver.save(sess, 'data/trained_models/vqa_model')
 
-        step = 0
+        sess.run(tf.assign(step, 0))
         total_size = 0
         losses = []
         while sess.run(step) * batch_size < len(questions):
@@ -202,7 +202,7 @@ def run():
             if pythonic_step % display_step == 0:
                 print("Training samples {} out of {}".format(pythonic_step * batch_size, len(questions)))
                 print("Till now training loss= " + "{:.6f}".format(sum(losses) / total_size))
-            step += 1
+            sess.run(tf.assign_add(step, 1))
         total_train_loss = sum(losses) / total_size
         print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
 
@@ -213,7 +213,7 @@ def run():
             return
 
         questions, answers = load_data(questions_vocab_processor, answers_vocab_processor, False)
-        step = 0
+        sess.run(tf.assign(step, 0))
         total_size = 0
         losses = []
         while sess.run(step) * batch_size < len(questions):
@@ -226,7 +226,7 @@ def run():
                 print("Validation samples {} out of {}".format(pythonic_step * batch_size, len(questions)))
                 print("Till now validation loss= " + "{:.6f}".format(sum(losses) / total_size))
                 print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
-            step += 1
+            sess.run(tf.assign_add(step, 1))
         total_validation_loss = sum(losses) / len(questions)
         print("Total Validation Loss= " + "{:.6f}".format(total_validation_loss))
 
