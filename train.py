@@ -173,9 +173,9 @@ def run():
         saver = tf.train.Saver()
         if os.path.isfile('data/trained_models/vqa_model.ckpt'):
             saver.restore(sess, 'data/trained_models/vqa_model.ckpt')
-            print sess.run(step)
+            print "Restored step={}".format(sess.run(step))
 
-        while step * batch_size < len(questions):
+        while sess.run(step) * batch_size < len(questions):
             batch_in_questions, batch_in_images, batch_out = get_batch_for_test(step, questions, answers, images_paths, output_len)
             sess.run(optimizer, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             if step % display_step == 0:
