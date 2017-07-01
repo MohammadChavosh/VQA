@@ -1,5 +1,6 @@
 __author__ = 'Mohammad'
 
+import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import learn, rnn
@@ -11,6 +12,7 @@ word2vec_file = 'data/GoogleNews-vectors-negative300.bin'
 learning_rate = 0.001
 batch_size = 8
 display_step = 10
+save_step = 10
 n_hidden = 256
 pre_output_len = 256
 img_features_len = 512
@@ -119,8 +121,10 @@ def run():
     questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, True)
 
     sess = tf.Session()
-    saver = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L152.meta')
-    saver.restore(sess, 'data/tensorflow-resnet-pretrained-20160509/ResNet-L152.ckpt')
+    saver = tf.train.Saver()
+
+    res_net_loader = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L152.meta')
+    res_net_loader.restore(sess, 'data/tensorflow-resnet-pretrained-20160509/ResNet-L152.ckpt')
 
     graph = tf.get_default_graph()
     images = graph.get_tensor_by_name("images:0")
@@ -161,26 +165,34 @@ def run():
     cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=prediction, labels=output_answers), name='cost')
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
+    step = tf.Variable(0, name="step")
     with sess.as_default():
         sess.run(tf.global_variables_initializer())
         init_embedding_w = load_word2vec(questions_vocab_processor)
         sess.run(embedding_w.assign(init_embedding_w))
-        step = 0
+
+        if os.path.isfile('data/trained_models/vqa_model.ckpt'):
+            saver.restore(sess, 'data/trained_models/vqa_model.ckpt')
+            print sess.run(step)
+
         while step * batch_size < len(questions):
             batch_in_questions, batch_in_images, batch_out = get_batch_for_test(step, questions, answers, images_paths, output_len)
             sess.run(optimizer, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             if step % display_step == 0:
                 loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
                 print("Iter " + str(step) + ", Minibatch Loss= " + "{:.6f}".format(loss))
+            if step % save_step == 0:
+                saver.save(sess, 'data/trained_models/vqa_model')
+                print("Saving...")
             step += 1
         print("Optimization Finished!")
-        saver.save(sess, 'data/trained_models/vqa_model', global_step=step)
+        saver.save(sess, 'data/trained_models/vqa_model')
 
         step = 0
         total_size = 0
         losses = []
         while step * batch_size < len(questions):
-            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, output_len)
+            batch_in_questions, batch_in_images, batch_out, size, _ = get_batch_for_test(step, questions, answers, images_paths, output_len)
             loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             losses.append(loss * size)
             total_size += size
