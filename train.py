@@ -176,12 +176,13 @@ def run():
             print "Restored step={}".format(sess.run(step))
 
         while sess.run(step) * batch_size < len(questions):
-            batch_in_questions, batch_in_images, batch_out = get_batch_for_test(step, questions, answers, images_paths, output_len)
+            pythonic_step = sess.run(step)
+            batch_in_questions, batch_in_images, batch_out, _ = get_batch_for_test(pythonic_step, questions, answers, images_paths, output_len)
             sess.run(optimizer, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
-            if step % display_step == 0:
+            if pythonic_step % display_step == 0:
                 loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
-                print("Iter " + str(step) + ", Minibatch Loss= " + "{:.6f}".format(loss))
-            if step % save_step == 0:
+                print("Iter " + str(pythonic_step) + ", Minibatch Loss= " + "{:.6f}".format(loss))
+            if pythonic_step % save_step == 0:
                 saver.save(sess, 'data/trained_models/vqa_model')
                 print("Saving...")
             step += 1
@@ -192,7 +193,7 @@ def run():
         total_size = 0
         losses = []
         while step * batch_size < len(questions):
-            batch_in_questions, batch_in_images, batch_out, size, _ = get_batch_for_test(step, questions, answers, images_paths, output_len)
+            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(step, questions, answers, images_paths, output_len)
             loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             losses.append(loss * size)
             total_size += size
