@@ -121,7 +121,6 @@ def run():
     questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, True)
 
     sess = tf.Session()
-    saver = tf.train.Saver()
 
     res_net_loader = tf.train.import_meta_graph('data/tensorflow-resnet-pretrained-20160509/ResNet-L152.meta')
     res_net_loader.restore(sess, 'data/tensorflow-resnet-pretrained-20160509/ResNet-L152.ckpt')
@@ -171,6 +170,7 @@ def run():
         init_embedding_w = load_word2vec(questions_vocab_processor)
         sess.run(embedding_w.assign(init_embedding_w))
 
+        saver = tf.train.Saver()
         if os.path.isfile('data/trained_models/vqa_model.ckpt'):
             saver.restore(sess, 'data/trained_models/vqa_model.ckpt')
             print sess.run(step)
