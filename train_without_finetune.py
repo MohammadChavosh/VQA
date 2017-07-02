@@ -163,7 +163,7 @@ def run():
     prediction = tf.identity(prediction, name="prediction")
     cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=prediction, labels=output_answers), name='cost')
 
-    optimizing_list = [raw_to_img_features_w, raw_to_img_features_bias, embedding_w, lstm_cell, encoded_questions, q_w, q_bias, img_out_w, q_out_w, out_bias, pre_output_w, pre_output_bias]
+    optimizing_list = [raw_to_img_features_w, raw_to_img_features_bias, embedding_w, lstm_cell.trainable_variables, lstm_cell.trainable_weights, q_w, q_bias, img_out_w, q_out_w, out_bias, pre_output_w, pre_output_bias]
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=optimizing_list)
 
     step = tf.Variable(0, name="step")
