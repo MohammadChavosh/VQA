@@ -212,7 +212,7 @@ def run():
         #     print(len(questions))
         #     return
 
-        questions, answers = load_data(questions_vocab_processor, answers_vocab_processor, False)
+        questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, False)
         sess.run(tf.assign(step, 0))
         total_size = 0
         losses = []
