@@ -1,5 +1,6 @@
 __author__ = 'Mohammad'
 
+import random
 import json
 import skimage.io
 import skimage.transform
@@ -38,7 +39,7 @@ def get_related_answers(is_train):
 	return related_answers
 
 
-def get_vqa_data(is_train):
+def get_vqa_data(is_train, sampling_ratio):
 	if is_train:
 		annotations = json.load(open('data/mscoco_train2014_annotations.json'))['annotations']
 		questions = json.load(open('data/OpenEnded_mscoco_train2014_questions.json'))['questions']
@@ -58,4 +59,6 @@ def get_vqa_data(is_train):
 			img_path += '0'
 		img_path += img_num + '.jpg'
 		vqa_triplets.append((q, annotation['multiple_choice_answer'], img_path))
+	if sampling_ratio < 1:
+		vqa_triplets = random.sample(vqa_triplets, len(vqa_triplets) * sampling_ratio)
 	return vqa_triplets

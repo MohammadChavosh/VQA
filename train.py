@@ -16,6 +16,8 @@ save_step = 200
 n_hidden = 256
 pre_output_len = 256
 img_features_len = 512
+train_sampling_ratio = 0.1
+validation_sampling_ratio = 1
 
 
 def load_related_train_data():
@@ -41,8 +43,8 @@ def load_related_train_data():
     return questions_vocab_processor, answers_vocab_processor, max_question_length
 
 
-def load_data(questions_vocab_processor, answers_vocab_processor, is_train):
-    vqa_triplets = get_vqa_data(is_train)
+def load_data(questions_vocab_processor, answers_vocab_processor, is_train, sampling_ratio):
+    vqa_triplets = get_vqa_data(is_train, sampling_ratio)
     question_texts = list()
     answers_vocab = list()
     images = list()
@@ -118,7 +120,7 @@ def get_batch_for_test(step, questions, answers, images_paths, answers_vocab_len
 
 def run():
     questions_vocab_processor, answers_vocab_processor, max_question_length = load_related_train_data()
-    questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, True)
+    questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, True, train_sampling_ratio)
 
     sess = tf.Session()
 
@@ -212,7 +214,7 @@ def run():
         #     print(len(questions))
         #     return
 
-        questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, False)
+        questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, False, validation_sampling_ratio)
         sess.run(tf.assign(step, 0))
         total_size = 0
         losses = []
