@@ -60,5 +60,5 @@ def get_vqa_data(is_train, sampling_ratio):
 		img_path += img_num + '.jpg'
 		vqa_triplets.append((q, annotation['multiple_choice_answer'], img_path))
 	if sampling_ratio < 1:
-		vqa_triplets = random.sample(vqa_triplets, len(vqa_triplets) * sampling_ratio)
+		vqa_triplets = random.sample(vqa_triplets, int(round(len(vqa_triplets) * sampling_ratio)))
 	return vqa_triplets
