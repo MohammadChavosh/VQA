@@ -17,7 +17,7 @@ n_hidden = 256
 pre_output_len = 256
 img_features_len = 512
 train_sampling_ratio = 0.1
-validation_sampling_ratio = 1
+validation_sampling_ratio = 0.1
 
 
 def load_related_train_data():
@@ -45,6 +45,7 @@ def load_related_train_data():
 
 def load_data(questions_vocab_processor, answers_vocab_processor, is_train, sampling_ratio):
     vqa_triplets = get_vqa_data(is_train, sampling_ratio)
+    print "Total is_train={} dataset size={}".format(is_train, len(vqa_triplets))
     question_texts = list()
     answers_vocab = list()
     images = list()
@@ -54,6 +55,7 @@ def load_data(questions_vocab_processor, answers_vocab_processor, is_train, samp
             answers_vocab.append(a)
             images.append(v)
 
+    print "Selected is_train={} answers dataset size={}".format(is_train, len(question_texts))
     questions = np.array(list(questions_vocab_processor.transform(question_texts)))
     answers = np.array(list(answers_vocab_processor.transform(answers_vocab)))
 
@@ -163,6 +165,8 @@ def run():
 
     prediction = tf.matmul(pre_output, pre_output_w) + pre_output_bias
     prediction = tf.identity(prediction, name="prediction")
+    correct_prediction = tf.equal(tf.argmax(output_answers, 1), tf.argmax(prediction, 1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=prediction, labels=output_answers), name='cost')
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
@@ -184,53 +188,63 @@ def run():
             sess.run(optimizer, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             sess.run(tf.assign_add(step, 1))
             if pythonic_step % display_step == 0:
-                loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
-                print("Iter " + str(pythonic_step) + ", Minibatch Loss= " + "{:.6f}".format(loss))
+                loss, acc = sess.run([cost, accuracy], feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
+                print("Iter " + str(pythonic_step) + ", Minibatch Loss={:.6f}".format(loss))
+                print("Accuracy={}".format(acc))
             if pythonic_step % save_step == 0:
                 saver.save(sess, 'data/trained_models/vqa_model')
                 print("Saving...")
         print("Optimization Finished!")
         saver.save(sess, 'data/trained_models/vqa_model')
 
-        # sess.run(tf.assign(step, 0))
-        # total_size = 0
-        # losses = []
-        # while sess.run(step) * batch_size < len(questions):
-        #     pythonic_step = sess.run(step)
-        #     batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(pythonic_step, questions, answers, images_paths, output_len)
-        #     loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
-        #     losses.append(loss * size)
-        #     total_size += size
-        #     if pythonic_step % display_step == 0:
-        #         print("Training samples {} out of {}".format(pythonic_step * batch_size, len(questions)))
-        #         print("Till now training loss= " + "{:.6f}".format(sum(losses) / total_size))
-        #     sess.run(tf.assign_add(step, 1))
-        # total_train_loss = sum(losses) / total_size
-        # print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
-        #
-        # if total_size != len(questions):
-        #     print("BUG!!!!")
-        #     print(total_size)
-        #     print(len(questions))
-        #     return
+        sess.run(tf.assign(step, 0))
+        total_size = 0
+        losses = []
+        accuracies = []
+        while sess.run(step) * batch_size < len(questions):
+            pythonic_step = sess.run(step)
+            batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(pythonic_step, questions, answers, images_paths, output_len)
+            loss, acc = sess.run([cost, accuracy], feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
+            losses.append(loss * size)
+            accuracies.append(acc * size)
+            total_size += size
+            if pythonic_step % display_step == 0:
+                print("Training samples {} out of {}".format(pythonic_step * batch_size, len(questions)))
+                print("Till now training loss={:.6f}".format(sum(losses) / total_size))
+                print("Till now training accuracy={}".format(sum(accuracies) / total_size))
+            sess.run(tf.assign_add(step, 1))
+        total_train_loss = sum(losses) / total_size
+        total_train_accuracy = sum(accuracies) / total_size
+
+        if total_size != len(questions):
+            print("BUG!!!!")
+            print(total_size)
+            print(len(questions))
+            return
 
         questions, answers, images_paths = load_data(questions_vocab_processor, answers_vocab_processor, False, validation_sampling_ratio)
         sess.run(tf.assign(step, 0))
         total_size = 0
         losses = []
+        accuracies = []
         while sess.run(step) * batch_size < len(questions):
             pythonic_step = sess.run(step)
             batch_in_questions, batch_in_images, batch_out, size = get_batch_for_test(pythonic_step, questions, answers, images_paths, output_len)
-            loss = sess.run(cost, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
+            loss, acc = sess.run([cost, accuracy], feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
             losses.append(loss * size)
+            accuracies.append(acc * size)
             total_size += size
             if pythonic_step % display_step == 0:
                 print("Validation samples {} out of {}".format(pythonic_step * batch_size, len(questions)))
                 print("Till now validation loss= " + "{:.6f}".format(sum(losses) / total_size))
-                # print("Total Training Loss= " + "{:.6f}".format(total_train_loss))
+                print("Till now validation accuracy={}".format(sum(accuracies) / total_size))
+                print("Total Training Loss={:.6f}".format(total_train_loss))
+                print("Total Training Accuracy={}".format(total_train_accuracy))
             sess.run(tf.assign_add(step, 1))
         total_validation_loss = sum(losses) / len(questions)
+        total_validation_accuracy = sum(accuracies) / len(questions)
         print("Total Validation Loss= " + "{:.6f}".format(total_validation_loss))
+        print("Total Validation Accuracy={}".format(total_validation_accuracy))
 
         if total_size != len(questions):
             print("BUG!!!!")
