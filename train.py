@@ -11,7 +11,8 @@ embedding_dim = 300
 word2vec_file = 'data/GoogleNews-vectors-negative300.bin'
 learning_rate = 0.001
 batch_size = 8
-display_step = 10
+times_pass_train_data = 2
+display_step = 50
 save_step = 200
 n_hidden = 256
 pre_output_len = 256
@@ -182,7 +183,7 @@ def run():
             saver.restore(sess, tf.train.latest_checkpoint('data/trained_models/'))
             print "Restored step={}".format(sess.run(step))
 
-        while sess.run(step) * batch_size < len(questions):
+        while sess.run(step) * batch_size < len(questions) * times_pass_train_data:
             pythonic_step = sess.run(step)
             batch_in_questions, batch_in_images, batch_out, _ = get_batch_for_test(pythonic_step, questions, answers, images_paths, output_len)
             sess.run(optimizer, feed_dict={input_questions: batch_in_questions, images: batch_in_images, output_answers: batch_out})
